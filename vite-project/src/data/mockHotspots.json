@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "lat": 36.7783,
+    "lng": -119.4179,
+    "probabilidade": 0.85,
+    "especie": "Tubarão-Branco"
+  },
+  {
+    "id": 2,
+    "lat": 34.0522,
+    "lng": -118.2437,
+    "probabilidade": 0.92,
+    "especie": "Tubarão-Branco"
+  },
+  {
+    "id": 3,
+    "lat": 32.7157,
+    "lng": -117.1611,
+    "probabilidade": 0.78,
+    "especie": "Tubarão-Branco"
+  },
+  {
+    "id": 4,
+    "lat": 37.3382,
+    "lng": -121.8863,
+    "probabilidade": 0.88,
+    "especie": "Tubarão-Branco"
+  }
+]
