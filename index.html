@@ -1,136 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sharknado — Simulated Shark Hotspots</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sharknado — Simulated Shark Hotspots (Live)</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
-  <!-- Heatmap plugin -->
-  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1220; --panel:#0f1a2e; --panel-2:#131f36;
+    --primary:#6c7bff; --text:#e9eefb; --muted:#9fb0d3; --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+  .app{display:grid;grid-template-columns:360px 1fr;height:100vh}
+  aside{background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:24px 20px;border-right:1px solid #0b1427;overflow:auto}
+  h1{margin:0 0 8px;font-size:26px}
+  .subtitle{color:var(--muted);margin-bottom:18px;font-size:14px}
+  .group{margin:18px 0 14px}
+  label{display:block;font-weight:600;font-size:13px;margin-bottom:8px;color:#cfe1ff}
+  input[type="date"],select,input[type="text"]{width:100%;background:#0b1529;border:1px solid #1a2a49;color:var(--text);border-radius:10px;padding:12px 12px;outline:none}
+  input::placeholder{color:#6f83aa}
+  button{width:100%;background:var(--primary);border:none;color:white;font-weight:700;padding:12px 14px;border-radius:10px;cursor:pointer;margin-top:10px}
+  button.secondary{background:#1c2b4f;margin-top:8px;font-weight:600}
+  .row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
+  .toggle{display:flex;gap:8px;align-items:center;margin:10px 0 2px}.toggle input{width:auto}
+  .legend{margin-top:18px;font-size:12.5px;color:#c8d6f0;line-height:1.5;background:#0b1529;padding:12px;border-radius:10px;border:1px solid #1a2a49}
+  .hotspot-list h3{margin:16px 0 10px;font-size:15px}
+  .hotspot-list ol{padding-left:18px;margin:0}.hotspot-list li{margin:6px 0;color:#dce7ff}
+  .credits{margin-top:18px;color:#8aa0cc;font-size:12px}
+  #map{height:100%;width:100%;position:relative;box-shadow: inset 0 0 200px rgba(0,0,0,.25)}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-direction:column}
+  .brand img{max-width:85%;height:auto;filter:drop-shadow(0 0 10px rgba(0,0,0,.5))}
+  .badge{background:#152346;color:#cfe1ff;border:1px solid #2b416f;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .kpi .card{background:#0b1529;border:1px solid #1a2a49;border-radius:10px;padding:10px 12px;text-align:center}
+  .kpi .card .v{font-weight:800;font-size:18px}.kpi .card .t{color:#9fb0d3;font-size:12px;margin-top:4px}
 
-  <style>
-    :root{
-      --bg:#0b1220; --panel:#0f1a2e; --panel-2:#131f36;
-      --primary:#6c7bff; --text:#e9eefb; --muted:#9fb0d3;
-      --ok:#2fd28d; --warn:#ffc857; --danger:#ff6b6b;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
-    .app{display:grid;grid-template-columns:360px 1fr;height:100vh}
-    aside{background:linear-gradient(180deg,var(--panel),var(--panel-2));padding:24px 20px;border-right:1px solid #0b1427;overflow:auto}
-    h1{margin:0 0 8px;font-size:26px;letter-spacing:.2px}
-    .subtitle{color:var(--muted);margin-bottom:18px;font-size:14px}
-    .group{margin:18px 0 14px}
-    label{display:block;font-weight:600;font-size:13px;margin-bottom:8px;color:#cfe1ff}
-    input[type="date"],select,input[type="text"]{width:100%;background:#0b1529;border:1px solid #1a2a49;color:var(--text);border-radius:10px;padding:12px 12px;outline:none;transition:.15s border-color ease}
-    input::placeholder{color:#6f83aa} input:focus,select:focus{border-color:#2b4daa}
-    button{width:100%;background:var(--primary);border:none;color:white;font-weight:700;padding:12px 14px;border-radius:10px;cursor:pointer;margin-top:10px;transition:.15s filter ease}
-    button:hover{filter:brightness(1.08)}
-    button.secondary{background:#1c2b4f;margin-top:8px;font-weight:600}
-    .row{display:flex;gap:10px;align-items:center}.row>*{flex:1}
-    .toggle{display:flex;gap:8px;align-items:center;margin:10px 0 2px}.toggle input{width:auto}
-    .legend{margin-top:18px;font-size:12.5px;color:#c8d6f0;line-height:1.5;background:#0b1529;padding:12px;border-radius:10px;border:1px solid #1a2a49}
-    .hotspot-list h3{margin:16px 0 10px;font-size:15px}
-    .hotspot-list ol{padding-left:18px;margin:0}.hotspot-list li{margin:6px 0;color:#dce7ff}
-    .credits{margin-top:18px;color:#8aa0cc;font-size:12px}
-    #map{height:100%;width:100%;position:relative;box-shadow: inset 0 0 200px rgba(0,0,0,.25)}
-    .brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
-    .badge{background:#152346;color:#cfe1ff;border:1px solid #2b416f;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
-    .kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-    .kpi .card{background:#0b1529;border:1px solid #1a2a49;border-radius:10px;padding:10px 12px;text-align:center}
-    .kpi .card .v{font-weight:800;font-size:18px}.kpi .card .t{color:#9fb0d3;font-size:12px;margin-top:4px}
+  /* Shark fin marker */
+  .shark-pin{position:relative;width:36px;height:36px;transform:translate(-50%,-85%)}
+  .shark-pin svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.8))}
+  .shark-pin .pulse{
+    position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;
+    background:var(--c);opacity:.45;transform:translate(-50%,-50%);animation:pulse 1.6s infinite;
+  }
+  @keyframes pulse{0%{transform:translate(-50%,-50%) scale(.8);opacity:.45}70%{transform:translate(-50%,-50%) scale(3.2);opacity:0}100%{opacity:0}}
 
-    /* Shark marker (SVG fin) */
-    .shark-pin{position:relative; width:36px; height:36px; transform:translate(-50%,-85%);}
-    .shark-pin svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.8))}
-    .shark-pin .pulse{
-      position:absolute; left:50%; top:50%; width:10px; height:10px; border-radius:50%;
-      background:var(--c); opacity:.45; transform:translate(-50%,-50%); animation:pulse 1.6s infinite;
-    }
-    @keyframes pulse{
-      0%{transform:translate(-50%,-50%) scale(.8); opacity:.45}
-      70%{transform:translate(-50%,-50%) scale(3.2); opacity:0}
-      100%{opacity:0}
-    }
+  /* Toasts (live alerts) */
+  .toasts{position:absolute;right:16px;top:16px;z-index:10000;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+  .toast{background:#0b1529;color:#e9eefb;border:1px solid #1a2a49;border-left:4px solid #7aa2ff;padding:10px 12px;border-radius:10px;min-width:280px;max-width:360px;box-shadow:0 12px 28px rgba(0,0,0,.35);opacity:0;transform:translateY(-8px);animation:toast-in .25s ease forwards}
+  .toast strong{font-weight:800}
+  @keyframes toast-in{to{opacity:1;transform:translateY(0)}}
 
-    @media (max-width: 900px){
-      .app{grid-template-columns:1fr;grid-template-rows:320px 1fr}
-      aside{height:320px;overflow:auto} #map{height:calc(100vh - 320px)}
-    }
-  </style>
+  @media (max-width: 900px){
+    .app{grid-template-columns:1fr;grid-template-rows:340px 1fr}
+    aside{height:340px;overflow:auto} #map{height:calc(100vh - 340px)}
+  }
+</style>
 </head>
 <body>
-  <div class="app">
-    <aside>
-      <div class="brand">
-        <h1>Project <span style="color:#7aa2ff">Sharknado</span></h1>
-        <span class="badge">Simulated</span>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <!-- Coloque "logo.png" (a imagem enviada) na mesma pasta do HTML -->
+      <img src="logo.png" alt="Team Sharknado logo">
+      <span class="badge">Simulated</span>
+    </div>
+
+    <div class="subtitle">AI‑inspired shark <b>hotspots</b> from simulated tag telemetry with live motion & alerts.</div>
+
+    <div class="kpi" id="kpis">
+      <div class="card"><div class="v" id="kpiTags">—</div><div class="t">Active tags</div></div>
+      <div class="card"><div class="v" id="kpiPings">—</div><div class="t">Pings (±2 days)</div></div>
+    </div>
+
+    <div class="group">
+      <label for="date">Select a date</label>
+      <input id="date" type="date" />
+    </div>
+
+    <div class="group">
+      <label for="species">Select a species</label>
+      <select id="species"></select>
+    </div>
+
+    <div class="group">
+      <label for="q">Search a location</label>
+      <div class="row">
+        <input id="q" type="text" placeholder="e.g., Cabo San Lucas, Mexico" />
+        <button id="btnSearch" style="max-width:120px">Search</button>
       </div>
-      <div class="subtitle">AI‑inspired shark <b>hotspots</b> based on <b>tag</b> telemetry (all data simulated).</div>
+    </div>
 
-      <div class="kpi" id="kpis">
-        <div class="card"><div class="v" id="kpiTags">—</div><div class="t">Active tags</div></div>
-        <div class="card"><div class="v" id="kpiPings">—</div><div class="t">Pings (±2 days)</div></div>
-      </div>
+    <div class="group">
+      <div class="toggle"><input type="checkbox" id="chkHeat" checked /><label for="chkHeat" style="margin:0">Heatmap</label></div>
+      <div class="toggle"><input type="checkbox" id="chkPings" /><label for="chkPings" style="margin:0">Ping dots</label></div>
+      <div class="toggle"><input type="checkbox" id="chkTracks" /><label for="chkTracks" style="margin:0">Tracks (last 14 d)</label></div>
+      <div class="toggle"><input type="checkbox" id="chkLast" checked /><label for="chkLast" style="margin:0">Last positions</label></div>
+      <div class="toggle"><input type="checkbox" id="chkLive" checked /><label for="chkLive" style="margin:0">Live movement & alerts</label></div>
+    </div>
 
-      <div class="group">
-        <label for="date">Select a date</label>
-        <input id="date" type="date" />
-      </div>
+    <button id="btnExport" class="secondary">Export filtered data (.geojson)</button>
 
-      <div class="group">
-        <label for="species">Select a species</label>
-        <select id="species"></select>
-      </div>
+    <div class="legend">
+      <b>Simulation notes</b><br/>
+      • Daily pings for the last 60 days with SST, Chlorophyll‑a, SSH, depth and a computed <i>feeding score</i>.<br/>
+      • An <b>accelerometer spike</b> can indicate speed bursts and potential hunting; a <b>diet</b> event may appear.<br/>
+      • A **coastline clamp** forces all points to the <b>ocean</b> — sharks will never be on land.
+    </div>
 
-      <div class="group">
-        <label for="q">Search a location</label>
-        <div class="row">
-          <input id="q" type="text" placeholder="e.g., San Diego, USA" />
-          <button id="btnSearch" style="max-width:120px">Search</button>
-        </div>
-      </div>
+    <div class="hotspot-list">
+      <h3>Top Hotspots (today ±2d)</h3>
+      <ol id="hotspotList"></ol>
+    </div>
 
-      <div class="group">
-        <div class="toggle"><input type="checkbox" id="chkHeat" checked /><label for="chkHeat" style="margin:0">Heatmap</label></div>
-        <div class="toggle"><input type="checkbox" id="chkPings" /><label for="chkPings" style="margin:0">Ping dots</label></div>
-        <div class="toggle"><input type="checkbox" id="chkTracks" /><label for="chkTracks" style="margin:0">Tracks (last 14 d)</label></div>
-        <div class="toggle"><input type="checkbox" id="chkLast" checked /><label for="chkLast" style="margin:0">Last positions</label></div>
-      </div>
+    <div class="credits">
+      Simulated data • Map © OpenStreetMap/Leaflet.  
+      Inspired by NASA Space Apps / PACE, VIIRS &amp; SWOT (environment here is fictional).
+    </div>
+  </aside>
 
-      <button id="btnExport" class="secondary">Export filtered data (.geojson)</button>
-
-      <div class="legend">
-        <b>Simulation notes</b><br/>
-        • Each tag generates daily pings for the past 60 days.<br/>
-        • Each ping includes SST, Chlorophyll‑a, Sea Surface Height (SSH), depth and a computed <i>feeding score</i>.<br/>
-        • An <b>accelerometer spike</b> may occur (speed burst → likely hunting). Some spikes include a <b>diet event</b> (what the shark ate).<br/>
-        • Positions are constrained to the <b>ocean side</b> of the coastline model to avoid inland hotspots.
-      </div>
-
-      <div class="hotspot-list">
-        <h3>Top Hotspots (today ±2d)</h3>
-        <ol id="hotspotList"></ol>
-      </div>
-
-      <div class="credits">
-        Simulated data • Map © OpenStreetMap/Leaflet.  
-        Inspired by NASA Space Apps / PACE, VIIRS &amp; SWOT (environment here is fictional).
-      </div>
-    </aside>
-
-    <div id="map" role="region" aria-label="Map with simulated shark hotspots"></div>
-  </div>
+  <div id="map" role="region" aria-label="Map with simulated shark hotspots"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</div>
 
 <script>
-/* ========= Utilities ========= */
+/* ================= Utilities ================= */
 function clamp(x,a,b){ return Math.max(a,Math.min(b,x)); }
 function randn(r){ let u=0,v=0; while(u===0)u=r(); while(v===0)v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
 function seededPRNG(seed){ let s=seed%2147483647; if(s<=0) s+=2147483646; return ()=>((s=s*16807%2147483647)-1)/2147483646; }
@@ -146,23 +147,88 @@ function dateOnly(d){ const x=new Date(d); x.setHours(0,0,0,0); return x;}
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x;}
 function dayDiff(a,b){ return Math.round((dateOnly(a)-dateOnly(b))/86400000); }
 function choice(r,arr){ return arr[Math.floor(r()*arr.length)] }
+function degTxt(v,ns='NS'){ const A=Math.abs(v).toFixed(1), s=v>=0?ns[0]:ns[1]; return `${A}°${s}`; }
 
-/* ======= Coastline guard (simple West Coast model) =======
-   A rough linear coastline approximation (lon = a + b*lat),
-   then we enforce all points to be *west* (more negative) than the
-   coast by a small buffer so hotspots don't appear on land.       */
-function coastLonApprox(lat){
-  return -85.8637 - 0.9640*lat; // fitted from CA coastline samples
-}
-function ensureOcean(lat, lon, r){
-  const maxLon = coastLonApprox(lat) - 0.25; // must be west of coast
-  if(lon > maxLon){
-    lon = maxLon - 0.3 - 0.4*(r?r():Math.random()); // push to sea
+/* ==================== OCEAN-ONLY CLAMP (robusto) ====================
+   Em vez de um polígono grosseiro, usamos perfis costeiros “piecewise”
+   para a Costa do Pacífico (CA + Baja) e para as duas margens do
+   Golfo da Califórnia. Qualquer ponto é “snapado” para o mar.        */
+
+// Perfis devem estar ordenados por latitude decrescente:
+const PACIFIC_COAST = [
+ [42.0,-124.5],[41.5,-124.4],[40.7,-124.3],[39.8,-123.9],[38.7,-123.3],
+ [37.8,-122.6],[37.0,-122.1],[36.3,-121.9],[35.3,-120.8],[34.5,-120.5],
+ [34.1,-119.7],[33.8,-118.5],[32.8,-117.2],[31.6,-116.6],[30.6,-116.1],
+ [29.6,-115.5],[28.8,-114.9],[27.9,-114.4],[26.9,-113.9],[25.9,-113.3],
+ [24.9,-112.7],[24.1,-112.2],[23.6,-111.8],[23.2,-111.5],[22.9,-111.2]
+];
+const GULF_WEST = [
+ [31.7,-114.9],[31.0,-114.2],[30.3,-113.8],[29.6,-113.3],[28.8,-112.9],
+ [27.9,-112.5],[26.9,-112.1],[26.0,-111.7],[25.2,-111.3],[24.5,-111.0],
+ [23.8,-110.7],[23.2,-110.4],[22.9,-110.2]
+];
+const GULF_EAST = [
+ [31.7,-113.5],[31.0,-113.0],[30.3,-112.6],[29.6,-112.2],[28.8,-111.8],
+ [27.9,-111.5],[26.9,-111.1],[26.0,-110.8],[25.2,-110.6],[24.5,-110.4],
+ [23.8,-110.2],[23.2,-110.0],[22.9,-109.9]
+];
+
+function interpLon(lat, arr){
+  // retorna a longitude da costa para um dado 'lat' por interpolação linear
+  if(lat >= arr[0][0]) return arr[0][1];
+  if(lat <= arr[arr.length-1][0]) return arr[arr.length-1][1];
+  for(let i=0;i<arr.length-1;i++){
+    const [la1,lo1]=arr[i], [la2,lo2]=arr[i+1];
+    if(la1>=lat && lat>=la2){
+      const t = (la1-lat)/(la1-la2);
+      return lo1 + (lo2-lo1)*t;
+    }
   }
-  return lon;
+  return arr[arr.length-1][1];
 }
 
-/* ========= Species setup ========= */
+function isWaterApprox(lat, lon){
+  const margin = 0.10; // ~11 km
+  const pac = interpLon(lat, PACIFIC_COAST);
+  if(lon <= pac - margin) return true; // Pacífico
+
+  // Corredor do Golfo da Califórnia
+  if(lat <= 32.0 && lat >= 22.8){
+    const gw = interpLon(lat, GULF_WEST);
+    const ge = interpLon(lat, GULF_EAST);
+    if(lon >= gw + margin && lon <= ge - margin) return true;
+  }
+  return false;
+}
+
+// Mantemos o mesmo nome usado no app (drop-in replacement)
+function pushOffLand(lat, lon, r){
+  // Tenta rapidamente; se já estiver no mar, retorna
+  if(isWaterApprox(lat, lon)) return [lat, lon];
+
+  // “Snap” iterativo para a borda de água mais próxima (Pacífico ou Golfo)
+  let iter=0;
+  while(!isWaterApprox(lat, lon) && iter<200){
+    const pac = interpLon(lat, PACIFIC_COAST) - 0.22;
+    let targetLon = pac;
+
+    if(lat <= 32.0 && lat >= 22.8){
+      const gw = interpLon(lat, GULF_WEST) + 0.14;
+      const ge = interpLon(lat, GULF_EAST) - 0.14;
+      // distância mínima até água (Pacífico vs Golfo)
+      const dPac  = Math.abs(lon - pac);
+      const dGulf = (lon < gw) ? (gw - lon) : (lon > ge ? (lon - ge) : 0);
+      if(dGulf < dPac) targetLon = (lon < gw ? gw : ge);
+    }
+    // passo com amortecimento
+    const step = Math.min(0.28, Math.abs(targetLon - lon)) * (0.9 + 0.2*((r?r():Math.random())));
+    lon += Math.sign(targetLon - lon) * step;
+    iter++;
+  }
+  return [lat, lon];
+}
+
+/* ================= Species & environment ================= */
 const SPECIES = [
   { code:'GW', name:'Great White Shark', color:'#66c2ff',
     sst:[12,18], chl:[0.5,3.0], depth:[0,80],
@@ -171,8 +237,8 @@ const SPECIES = [
       {name:'Monterey Bay', lat:36.8, lon:-122.0},
       {name:'Santa Barbara Channel', lat:34.3, lon:-120.0},
       {name:'Guadalupe Island', lat:28.9, lon:-118.3}
-    ], count:4,
-    diet:['sea lion','seal','tuna','mackerel','ray']
+    ],
+    count:4, diet:['sea lion','seal','tuna','mackerel','ray']
   },
   { code:'TI', name:'Tiger Shark', color:'#ffd166',
     sst:[20,28], chl:[0.1,1.5], depth:[0,120],
@@ -180,8 +246,8 @@ const SPECIES = [
       {name:'Catalina', lat:33.3, lon:-118.0},
       {name:'Northern Baja', lat:30.0, lon:-115.5},
       {name:'Cabo San Lucas', lat:22.90, lon:-109.90}
-    ], count:3,
-    diet:['sea turtle','barracuda','stingray','seabird','crab']
+    ],
+    count:3, diet:['sea turtle','barracuda','stingray','seabird','crab']
   },
   { code:'HM', name:'Hammerhead Shark', color:'#c792ea',
     sst:[20,26], chl:[0.3,2.5], depth:[0,100],
@@ -189,17 +255,16 @@ const SPECIES = [
       {name:'Gulf of California (N)', lat:28.0, lon:-112.0},
       {name:'La Paz', lat:24.2, lon:-110.3},
       {name:'Cabo Pulmo', lat:23.4, lon:-109.4}
-    ], count:3,
-    diet:['squid','anchovy','sardine','ray','mullet']
+    ],
+    count:3, diet:['squid','anchovy','sardine','ray','mullet']
   }
 ];
+const SPECIES_BY_CODE = Object.fromEntries(SPECIES.map(s => [s.code, s]));
 
 function preference(x,min,max){
   const mid=(min+max)/2, half=(max-min)/2;
   return clamp(1 - Math.abs(x-mid)/(half*1.5), 0, 1);
 }
-
-// Fictional environment model (varies with lat/lon and season)
 function envModel(lat, lon, date){
   const t = (date instanceof Date) ? date : new Date(date);
   const doy = Math.floor((t - new Date(t.getFullYear(),0,0)) / 86400000);
@@ -215,8 +280,8 @@ function feedingScore(sp, env, depth){
   return clamp(0.5*sstS + 0.3*chlS + 0.2*depS, 0, 1);
 }
 
-/* ========= Simulated tags ========= */
-function generateSimulatedTags(seed=123){
+/* ================= Simulated tags ================= */
+function generateSimulatedTags(seed=321){
   const r = seededPRNG(seed);
   const now = new Date();
   const start = addDays(now, -60);
@@ -227,42 +292,43 @@ function generateSimulatedTags(seed=123){
       const home = sp.hotspots[Math.floor(r()*sp.hotspots.length)];
       let lat = home.lat + randn(r)*0.5;
       let lon = home.lon + randn(r)*0.5;
-      const id = `${sp.code}-${String(k+1).padStart(2,'0')}`;
+      [lat,lon] = pushOffLand(lat,lon,r); // garantir mar logo no início
 
+      const id = `${sp.code}-${String(k+1).padStart(2,'0')}`;
       const track = [];
       let prevPos = null;
 
       for(let d=0; d<=60; d++){
         const ts = addDays(start, d);
 
-        // small random walk with attraction to home + seasonality
+        // random walk com leve atração para "home"
         lat += randn(r)*0.15 + (home.lat - lat)*0.02 + 0.05*Math.sin(d/6);
         lon += randn(r)*0.15 + (home.lon - lon)*0.02 + 0.05*Math.cos(d/7);
 
-        // keep within Pacific NE box
+        // limites geográficos
         lon = clamp(lon, -130, -105);
         lat = clamp(lat, 18, 42);
 
-        // make sure it's on the ocean side of the coastline
-        lon = ensureOcean(lat, lon, r);
+        // MAR (snap final e definitivo)
+        [lat,lon] = pushOffLand(lat,lon,r);
 
-        // environment + behavior
         const depth = Math.abs(randn(r))*30 + (sp.code==='GW' ? 20 : 10);
         const env = envModel(lat, lon, ts);
         const score = feedingScore(sp, env, depth);
-        let speed = null;
-        if(prevPos){ speed = haversineKm(prevPos, {lat, lon}); }
+
+        let speed = null; if(prevPos){ speed = haversineKm(prevPos, {lat, lon}); }
         prevPos = {lat, lon};
 
-        const accelSpike = (!!speed && (speed>65 || (score>0.85 && r()<0.4)));
-        const attack = (score>0.88 && r()<0.08) || (accelSpike && r()<0.35);
+        // eventos
+        const accelSpike = (!!speed && (speed>65 || (score>0.85 && r()<0.35)));
+        const attack = (score>0.88 && r()<0.08) || (accelSpike && r()<0.30);
         const diet = (attack && r()<0.30) ? choice(r, sp.diet) : null;
 
         track.push({
           id, speciesCode: sp.code, speciesName: sp.name,
           ts: ts.toISOString(), lat, lon, depth,
           sst: env.sst, chl: env.chl, ssh: env.ssh,
-          feeding: score, attack, accelSpike, diet, speed
+          feeding: score, accelSpike, attack, diet, speed
         });
       }
       tags.push({ id, species: sp.name, speciesCode: sp.code, color: sp.color, home, track });
@@ -270,10 +336,9 @@ function generateSimulatedTags(seed=123){
   }
   return tags;
 }
+const TAGS = generateSimulatedTags();
 
-const TAGS = generateSimulatedTags(321);
-
-/* ========= Map & layers ========= */
+/* ================= Map & layers ================= */
 const map = L.map('map', {worldCopyJump:true, preferCanvas:true}).setView([34.2,-120.0], 5.6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
 
@@ -286,13 +351,15 @@ lyrHeat.addTo(map);
 lyrLast.addTo(map);
 lyrHotCircles.addTo(map);
 
-// UI refs
+/* ================= UI refs ================= */
 const inputDate = document.getElementById('date');
 const selSpecies = document.getElementById('species');
 const chkHeat=document.getElementById('chkHeat'), chkPings=document.getElementById('chkPings'),
-      chkTracks=document.getElementById('chkTracks'), chkLast=document.getElementById('chkLast');
+      chkTracks=document.getElementById('chkTracks'), chkLast=document.getElementById('chkLast'),
+      chkLive=document.getElementById('chkLive');
 const kpiTags=document.getElementById('kpiTags'), kpiPings=document.getElementById('kpiPings'),
       hotspotList=document.getElementById('hotspotList');
+const toastsBox = document.getElementById('toasts');
 
 // species selector
 (function setupSpecies(){
@@ -300,9 +367,9 @@ const kpiTags=document.getElementById('kpiTags'), kpiPings=document.getElementBy
   for(const sp of SPECIES){ const o=document.createElement('option'); o.value=sp.code; o.textContent=sp.name; selSpecies.appendChild(o); }
   inputDate.valueAsDate = new Date(); selSpecies.value='GW';
 })();
-[inputDate, selSpecies, chkHeat, chkPings, chkTracks, chkLast].forEach(el => el.addEventListener('change', update));
+[inputDate, selSpecies, chkHeat, chkPings, chkTracks, chkLast, chkLive].forEach(el => el.addEventListener('change', update));
 
-/* ===== Search with Nominatim ===== */
+/* =========== Search (Nominatim) =========== */
 document.getElementById('btnSearch').addEventListener('click', async ()=>{
   const q = document.getElementById('q').value.trim(); if(!q) return;
   try{
@@ -313,14 +380,14 @@ document.getElementById('btnSearch').addEventListener('click', async ()=>{
   }catch(e){ alert('Search failed (network?).'); }
 });
 
-/* ===== Export filtered data ===== */
+/* =========== Export (.geojson) =========== */
 document.getElementById('btnExport').addEventListener('click', ()=>{
   const gj = filteredGeoJSON();
   const blob = new Blob([JSON.stringify(gj,null,2)], {type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sharknado_simulated.geojson'; a.click(); URL.revokeObjectURL(a.href);
 });
 
-/* ===== Filter helpers ===== */
+/* =========== Filtering helpers =========== */
 function getFilteredPings(){
   const centerDate = inputDate.valueAsDate ?? new Date();
   const sCode = selSpecies.value;
@@ -357,7 +424,7 @@ function filteredGeoJSON(){
   };
 }
 
-/* ===== Hotspots (0.5° grid, ocean-clamped) ===== */
+/* =========== Hotspots (0.5° grid; ocean-only) =========== */
 function computeHotspots(pings){
   const buckets = new Map();
   for(const p of pings){
@@ -366,45 +433,43 @@ function computeHotspots(pings){
   }
   const arr = [...buckets.entries()].map(([k,v])=>{
     let [lat,lon]=k.split('|').map(Number);
-    lon = ensureOcean(lat, lon); // ensure circle center is offshore
+    [lat,lon] = pushOffLand(lat,lon); // garante centro no mar
     return {lat,lon,score:v};
   }).sort((a,b)=>b.score-a.score).slice(0,5);
   return arr;
 }
 
-/* ===== Visual shark icon ===== */
+/* =========== Visual shark icon =========== */
 function sharkDivIcon(color, hunting=false){
   const pulse = hunting ? `<div class="pulse" style="--c:${color}"></div>` : '';
   const svg = `
   <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
-    <!-- water -->
     <rect x="0" y="44" width="64" height="8" fill="rgba(255,255,255,.25)"/>
-    <!-- simple dorsal fin -->
-    <path d="M6 52 L58 52 L52 46 C44 38 40 24 28 20 C20 30 14 40 8 46 Z"
-          fill="${color}" />
+    <path d="M6 52 L58 52 L52 46 C44 38 40 24 28 20 C20 30 14 40 8 46 Z" fill="${color}" />
   </svg>`;
   return L.divIcon({ className:'', html:`<div class="shark-pin">${pulse}${svg}</div>`, iconSize:[36,36], iconAnchor:[18,28] });
 }
 
-/* ===== Update map ===== */
-const kpiTagsEl=document.getElementById('kpiTags');
-const kpiPingsEl=document.getElementById('kpiPings');
+/* =========== Update map =========== */
+const lastState = new Map(); // id -> { marker, track, i, frac, color, speciesCode }
+let liveTimer = null;
 
 function update(){
   const {pings, tagIds} = getFilteredPings();
 
-  // KPIs
-  kpiTagsEl.textContent = String(tagIds.length);
-  kpiPingsEl.textContent = String(pings.length);
+  kpiTags.textContent = String(tagIds.length);
+  kpiPings.textContent = String(pings.length);
 
-  // clear layers
+  // clear layers & live state
   lyrHeat.setLatLngs([]);
   lyrPings.clearLayers(); lyrTracks.clearLayers();
   lyrLast.clearLayers();  lyrHotCircles.clearLayers();
+  lastState.clear();
+  if(liveTimer){ clearInterval(liveTimer); liveTimer = null; }
 
-  // heat points (offshore)
+  // heatmap (ocean-only)
   if(chkHeat.checked){
-    const pts = pings.map(p => [p.lat, ensureOcean(p.lat,p.lon), clamp(p.feeding,0.05,1)]);
+    const pts = pings.map(p => { const ll=pushOffLand(p.lat,p.lon); return [ll[0], ll[1], clamp(p.feeding,0.05,1)]; });
     lyrHeat.setLatLngs(pts).addTo(map);
   } else map.removeLayer(lyrHeat);
 
@@ -412,7 +477,8 @@ function update(){
   if(chkPings.checked){
     for(const p of pings){
       const hunting = p.attack || p.accelSpike;
-      const m = L.circleMarker([p.lat, ensureOcean(p.lat,p.lon)], {
+      const ll = pushOffLand(p.lat,p.lon);
+      const m = L.circleMarker(ll, {
         radius: (hunting? 5:4), weight:1,
         color: hunting ? '#ff6b6b' : p.color,
         fillColor: hunting ? '#ff6b6b' : p.color, fillOpacity: hunting?0.9:0.6
@@ -433,14 +499,14 @@ function update(){
     lyrPings.addTo(map);
   } else map.removeLayer(lyrPings);
 
-  // tracks (last 14 days)
+  // tracks (last 14 days) — ocean-only
   if(chkTracks.checked){
     const seen = new Set();
     for(const p of pings){
       if(seen.has(p.id)) continue; seen.add(p.id);
-      const last14 = TAGS.find(t=>t.id===p.id).track
-        .filter(x => dayDiff(inputDate.valueAsDate||new Date(), new Date(x.ts)) <= 14)
-        .map(x => [x.lat, ensureOcean(x.lat,x.lon)]);
+      const trAll = TAGS.find(t=>t.id===p.id).track;
+      const last14 = trAll.filter(x => dayDiff(inputDate.valueAsDate||new Date(), new Date(x.ts)) <= 14)
+                          .map(x => pushOffLand(x.lat,x.lon));
       if(last14.length>=2){
         const c = TAGS.find(t=>t.id===p.id).color;
         L.polyline(last14, {color:c, weight:2, opacity:0.85}).addTo(lyrTracks);
@@ -449,17 +515,27 @@ function update(){
     lyrTracks.addTo(map);
   } else map.removeLayer(lyrTracks);
 
-  // last positions (with shark icon)
+  // last positions (with shark icon) + prepare live state (ocean-only)
   if(chkLast.checked){
+    const centerDate = inputDate.valueAsDate ?? new Date();
     const lastByTag = new Map();
     for(const p of pings){
       if(!lastByTag.has(p.id) || new Date(p.ts)>new Date(lastByTag.get(p.id).ts)) lastByTag.set(p.id,p);
     }
+
     for(const [id,p] of lastByTag.entries()){
       const hunting = p.attack || p.accelSpike;
-      L.marker([p.lat, ensureOcean(p.lat,p.lon)], { icon: sharkDivIcon(p.color, hunting) })
+      const ll = pushOffLand(p.lat,p.lon);
+      const marker = L.marker(ll, { icon: sharkDivIcon(p.color, hunting) })
         .bindTooltip(`${p.speciesName} — ${id}`, {direction:'top'})
         .addTo(lyrLast);
+
+      // índice da data escolhida
+      const track = TAGS.find(t=>t.id===id).track;
+      let i = track.findIndex(x=>dateOnly(new Date(x.ts)).getTime()===dateOnly(new Date(p.ts)).getTime());
+      if(i<0) i = track.findIndex(x=>new Date(x.ts)>=centerDate);
+      if(i<0) i = track.length-2;
+      lastState.set(id, { marker, track, i:Math.max(0,Math.min(track.length-2,i)), frac:0, color:p.color, speciesCode: p.speciesCode });
     }
     lyrLast.addTo(map);
   } else map.removeLayer(lyrLast);
@@ -477,11 +553,51 @@ function update(){
       .addTo(lyrHotCircles);
   });
   lyrHotCircles.addTo(map);
+
+  // live movement
+  if(chkLive.checked){ liveTimer = setInterval(stepLive, 1600); }
 }
-update();
+
+function toast(msg, color='#7aa2ff'){
+  const div = document.createElement('div'); div.className='toast'; div.style.borderLeftColor=color; div.innerHTML=msg;
+  toastsBox.appendChild(div);
+  setTimeout(()=>{ div.style.opacity='0'; div.style.transform='translateY(-8px)'; div.style.transition='all .25s'; }, 5200);
+  setTimeout(()=>{ toastsBox.removeChild(div); }, 5600);
+}
+
+function stepLive(){
+  for(const [id, s] of lastState.entries()){
+    const a = s.track[s.i], b = s.track[s.i+1] || s.track[s.i];
+    s.frac += 0.28 + Math.random()*0.18;
+    if(s.frac >= 1){ s.i = Math.min(s.i+1, s.track.length-2); s.frac = 0; }
+    const lat = a.lat + (b.lat - a.lat)*s.frac;
+    const lon = a.lon + (b.lon - a.lon)*s.frac;
+    const ll = pushOffLand(lat,lon);
+    s.marker.setLatLng(ll);
+
+    // live alerts
+    const speed = haversineKm({lat:a.lat,lon:a.lon},{lat:b.lat,lon:b.lon});
+    const score = a.feeding*(1-s.frac) + b.feeding*s.frac;
+    const accel = (speed>70) || Math.random()<0.06;
+    const hunt  = (score>0.9 && Math.random()<0.6) || Math.random()<0.03;
+
+    if((accel || hunt) && Math.random()<0.34){
+      const sp = SPECIES_BY_CODE[s.speciesCode];
+      const diet = (hunt && Math.random()<0.45) ? choice(Math.random, sp.diet) : null;
+      const msg =
+        `<strong>${id}</strong> · ${sp.name}<br/>
+         ${accel?'<b>Speed burst</b> (accelerometer spike)':'Activity update'}${hunt?' — <span style="color:#fff;background:'+s.color+';padding:2px 6px;border-radius:6px;margin-left:4px"><b>HUNTING</b></span>':''}<br/>
+         Near ${degTxt(ll[0],'NS')}, ${degTxt(ll[1],'EW')} · est. ${fmt(speed,1)} km/day
+         ${diet?('<br/>Possible diet: <i>'+diet+'</i>'):''}`;
+      toast(msg, s.color);
+    }
+  }
+}
 
 /* Keyboard shortcut: Ctrl/Cmd + E to export */
 document.addEventListener('keydown',(e)=>{ if(e.key==='e'&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); document.getElementById('btnExport').click(); }});
+
+update(); // first render
 </script>
 </body>
 </html>
