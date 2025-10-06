@@ -14,9 +14,7 @@ import os
 import requests
 from io import StringIO
 from datetime import datetime
-from google.colab import files
 
-from google.colab import drive
 drive.mount('/content/drive')
 
 # Script para usar o modelo de IA treinado e fazer novas previsões
