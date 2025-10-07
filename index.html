@@ -44,8 +44,20 @@
   .kpi .card .v{font-weight:800;font-size:18px}.kpi .card .t{color:#9fb0d3;font-size:12px;margin-top:4px}
 
   /* Shark fin marker */
-  .shark-pin{position:relative;width:36px;height:36px;transform:translate(-50%,-85%)}
-  .shark-pin svg{filter:drop-shadow(0 1px 3px rgba(0,0,0,.8))}
+  .shark-pin{
+    position:relative;
+    transform:translate(-50%,-85%);
+  }
+  .shark-pin img{
+    display:block;
+    width:100%;
+    height:100%;
+    filter:drop-shadow(0 1px 3px rgba(0,0,0,.8));
+  }
+  .leaflet-marker-icon .shark-pin{
+  width:10%;
+  height:80%;
+}
   .shark-pin .pulse{
     position:absolute;left:50%;top:50%;width:10px;height:10px;border-radius:50%;
     background:var(--c);opacity:.45;transform:translate(-50%,-50%);animation:pulse 1.6s infinite;
@@ -148,6 +160,8 @@ function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x;}
 function dayDiff(a,b){ return Math.round((dateOnly(a)-dateOnly(b))/86400000); }
 function choice(r,arr){ return arr[Math.floor(r()*arr.length)] }
 function degTxt(v,ns='NS'){ const A=Math.abs(v).toFixed(1), s=v>=0?ns[0]:ns[1]; return `${A}°${s}`; }
+const USE_ICONS_FOR_PINGS = true;
+
 
 /* ==================== OCEAN-ONLY CLAMP (robusto) ====================
    Em vez de um polígono grosseiro, usamos perfis costeiros “piecewise”
@@ -439,16 +453,23 @@ function computeHotspots(pings){
   return arr;
 }
 
-/* =========== Visual shark icon =========== */
-function sharkDivIcon(color, hunting=false){
-  const pulse = hunting ? `<div class="pulse" style="--c:${color}"></div>` : '';
-  const svg = `
-  <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
-    <rect x="0" y="44" width="64" height="8" fill="rgba(255,255,255,.25)"/>
-    <path d="M6 52 L58 52 L52 46 C44 38 40 24 28 20 C20 30 14 40 8 46 Z" fill="${color}" />
-  </svg>`;
-  return L.divIcon({ className:'', html:`<div class="shark-pin">${pulse}${svg}</div>`, iconSize:[36,36], iconAnchor:[18,28] });
+/* =========== Visual shark icon (PNG por espécie) =========== */
+const SPECIES_ICONS = {
+  GW: 'whiteshark.png',   // Great White
+  HM: 'hammerhead.png',   // Hammerhead
+  TI: 'sharktiger.png'    // Tiger
+};
+
+function sharkImageIcon(speciesCode, color, hunting=false, size=40){
+  const url = SPECIES_ICONS[speciesCode] || SPECIES_ICONS.GW;
+  const pulse = hunting
+    ? `<div class="pulse" style="--c:${color}; width:${Math.round(size*0.22)}px; height:${Math.round(size*0.22)}px"></div>`
+    : '';
+  const html = `<div class="shark-pin">${pulse}<img src="${url}" alt="Shark icon ${speciesCode}" /></div>`;
+  // âncora: centro horizontal e ~78% vertical (parece “apoiado” na barriga)
+  return L.divIcon({ className:'', html, iconSize:[size,size], iconAnchor:[size/2, size*0.78] });
 }
+
 
 /* =========== Update map =========== */
 const lastState = new Map(); // id -> { marker, track, i, frac, color, speciesCode }
@@ -478,7 +499,18 @@ function update(){
     for(const p of pings){
       const hunting = p.attack || p.accelSpike;
       const ll = pushOffLand(p.lat,p.lon);
-      const m = L.circleMarker(ll, {
+      const m = USE_ICONS_FOR_PINGS ? L.marker(ll, { icon: sharkImageIcon(p.speciesCode, p.color, hunting, 28) }).bindPopup(`
+        <b>${p.speciesName}</b> — <code>${p.id}</code><br/>
+        <small>${new Date(p.ts).toLocaleString()}</small><br/>
+        <hr style="border:none;border-top:1px solid #1a2a49">
+        ${hunting?'<span style="background:#ff6b6b;color:white;padding:2px 6px;border-radius:6px;font-weight:700">HUNTING</span><br/>':''}
+        <b>Feeding score:</b> ${pct(p.feeding)}<br/>
+        <b>Accelerometer:</b> ${p.accelSpike?'spike (speed burst)':'normal'}<br/>
+        ${p.diet?('<b>Diet event:</b> '+p.diet+'<br/>'):''}
+        <b>SST:</b> ${fmt(p.sst)} °C &nbsp; <b>Chl‑a:</b> ${fmt(p.chl)} mg/m³<br/>
+        <b>SSH:</b> ${fmt(p.ssh)} m &nbsp; <b>Depth:</b> ${fmt(p.depth,1)} m<br/>
+        ${p.speed?('<b>Distance:</b> '+fmt(p.speed,1)+' km/day'):''}
+      `) : L.circleMarker(ll, {
         radius: (hunting? 5:4), weight:1,
         color: hunting ? '#ff6b6b' : p.color,
         fillColor: hunting ? '#ff6b6b' : p.color, fillOpacity: hunting?0.9:0.6
@@ -526,7 +558,7 @@ function update(){
     for(const [id,p] of lastByTag.entries()){
       const hunting = p.attack || p.accelSpike;
       const ll = pushOffLand(p.lat,p.lon);
-      const marker = L.marker(ll, { icon: sharkDivIcon(p.color, hunting) })
+      const marker = L.marker(ll, { icon: sharkImageIcon(p.speciesCode, p.color, hunting, 42) })
         .bindTooltip(`${p.speciesName} — ${id}`, {direction:'top'})
         .addTo(lyrLast);
 
